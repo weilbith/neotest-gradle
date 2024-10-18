@@ -1,5 +1,8 @@
 local lib = require('neotest.lib')
+local async = require("neotest.async")
+local logger = require("neotest.logging")
 local find_project_directory = require('neotest-gradle.hooks.find_project_directory')
+local test_configuration_resolver = require('neotest-gradle.hooks.test_configuration_resolver')
 
 --- Fiends either an executable file named `gradlew` in any parent directory of
 --- the project or falls back to a binary called `gradle` that must be available
@@ -20,14 +23,16 @@ end
 
 --- Runs the given Gradle executable in the respective project directory to
 --- query the `testResultsDir` property. Has to do so some plain text parsing of
---- the Gradle command output. The child folder named `test` is always added to
---- this path.
+--- the Gradle command output. The child folder named accordingly to test_configuration is always added to
+--- this path. 
+--- Passes test_configuration to the Gradle command to query the correct test results directory.
 --- Is empty is directory could not be determined.
 ---
 --- @param gradle_executable string
 --- @param project_directory string
+--- @param test_configuration string
 --- @return string - absolute path of test results directory
-local function get_test_results_directory(gradle_executable, project_directory)
+local function get_test_results_directory(gradle_executable, project_directory, test_configuration)
   local command = {
     gradle_executable,
     '--project-dir',
@@ -36,12 +41,15 @@ local function get_test_results_directory(gradle_executable, project_directory)
     '--property',
     'testResultsDir',
   }
+
+  logger.info("Gradle command to examine test results dir: " .. table.concat(command, ' '))
+
   local _, output = lib.process.run(command, { stdout = true })
   local output_lines = vim.split(output.stdout or '', '\n')
 
   for _, line in pairs(output_lines) do
     if line:match('testResultsDir: ') then
-      return line:gsub('testResultsDir: ', '') .. lib.files.sep .. 'test'
+      return line:gsub('testResultsDir: ', '') .. lib.files.sep .. test_configuration
     end
   end
 
@@ -96,6 +104,7 @@ local function get_test_filter_arguments(tree, position)
   return arguments
 end
 
+
 --- See Neotest adapter specification.
 ---
 --- In its core, it builds a command to start Gradle correctly in the project
@@ -109,11 +118,15 @@ return function(arguments)
   local position = arguments.tree:data()
   local project_directory = find_project_directory(position.path)
   local gradle_executable = get_gradle_executable(project_directory)
-  local command = { gradle_executable, '--project-dir', project_directory, 'test' }
+  local test_directory = test_configuration_resolver.extract_test_directory(position.path, project_directory)
+  local test_configuration = test_configuration_resolver.get_test_configuration(arguments, test_directory)
+  local command = { gradle_executable, '--project-dir', project_directory, test_configuration, '-PjunitXml.enabled=true'}
+  logger.info("Gradle command: " .. table.concat(command, ' '))
   vim.list_extend(command, get_test_filter_arguments(arguments.tree, position))
 
   local context = {}
-  context.test_resuls_directory = get_test_results_directory(gradle_executable, project_directory)
+  context.test_resuls_directory = get_test_results_directory(gradle_executable, project_directory, test_configuration)
+  logger.info("Test results directory: " .. context.test_resuls_directory)
 
   return { command = table.concat(command, ' '), context = context }
 end
