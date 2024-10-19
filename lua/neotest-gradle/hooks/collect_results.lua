@@ -1,5 +1,6 @@
 local lib = require('neotest.lib')
 local xml = require('neotest.lib.xml')
+local logger = require("neotest.logging")
 local get_package_name = require('neotest-gradle.hooks.shared_utilities').get_package_name
 
 local XML_FILE_SUFFIX = '.xml'
@@ -38,6 +39,22 @@ end
 --- result from the JUnit report XML. Therefore it parses the location from the
 --- node attributes and compares it with the position information in the tree.
 ---
+--- Position: [id] [name]
+--- Position: /.../.../.../ordermanagement/files/rest/FileResponseMapperTest.java FileResponseMapperTest.java
+--- Function name: toFileResponseTest
+--- Package and class: com.jysk.ordermanagement.files.rest.FileResponseMapperTest
+--- Position: com.jysk.ordermanagement.files.rest.FileResponseMapperTest file response mapper test
+--- Function name: toFileResponseTest
+--- Package and class: com.jysk.ordermanagement.files.rest.FileResponseMapperTest
+--- Position: com.jysk.ordermanagement.files.rest.FileResponseMapperTest.toFileResponseTest to file response test
+--- Function name: toFileResponseTest
+--- Package and class: com.jysk.ordermanagement.files.rest.FileResponseMapperTest
+--- Position: com.jysk.ordermanagement.files.rest.FileResponseMapperTest.mapFileIdTest map file id test
+--- Function name: toFileResponseTest
+--- Package and class: com.jysk.ordermanagement.files.rest.FileResponseMapperTest
+--- Position: com.jysk.ordermanagement.files.rest.FileResponseMapperTest.mapFileContentTypeTest map file content type test
+--- Function name: toFileResponseTest
+--- Package and class: com.jysk.ordermanagement.files.rest.FileResponseMapperTest
 --- @param tree table - see neotest.Tree
 --- @param test_case_node table - XML node of test case result
 --- @return table | nil - see neotest.Position
@@ -46,7 +63,7 @@ local function find_position_for_test_case(tree, test_case_node)
   local package_and_class = (test_case_node._attr.classname:gsub('%$', '%.'))
 
   for _, position in tree:iter() do
-    if position.name == function_name and vim.startswith(position.id, package_and_class) then
+    if vim.startswith(position.id, package_and_class) and vim.endswith(position.id, function_name) then
       return position
     end
   end
@@ -88,6 +105,7 @@ end
 --- It also tries to determine why and where a test possibly failed for
 --- additional Neotest features like diagnostics.
 ---
+--- @async
 --- @param build_specfication table - see neotest.RunSpec
 --- @param tree table - see neotest.Tree
 --- @return table<string, table> - see neotest.Result

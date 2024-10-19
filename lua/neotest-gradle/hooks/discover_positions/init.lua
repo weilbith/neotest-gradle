@@ -1,3 +1,4 @@
+local async = require("neotest.async")
 local lib = require('neotest.lib')
 local filetype = require('plenary.filetype')
 local position_queries = require('neotest-gradle.position_queries')
@@ -12,6 +13,7 @@ local position_queries = require('neotest-gradle.position_queries')
 --- Referred context functions help to provide good readable test names for UI
 --- and construct test identifiers based on Java paths used during execution.
 ---
+--- @async
 --- @param path string - absolute file path
 --- @return nil | table | table[] - see neotest.Tree
 return function(path)
