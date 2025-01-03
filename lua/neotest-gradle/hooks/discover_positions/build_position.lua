@@ -8,31 +8,13 @@ local function get_captured_node_type(captured_nodes)
   end
 end
 
---- Try to convert camel case function names from Java to something more text
---- alike as you can do in Kotlin.
---- For example `itShouldFailIfBroken` becomes `it should fail if broken`.
---- Works not too well for many cases and is open to improvements.
----
---- @param text string
---- @return string
-local function camel_case_to_lower_case_with_whitespaces(text)
-  return (text:gsub('([A-Z])', function(character)
-    return ' ' .. character:lower()
-  end))
-end
-
---- Try to improve the raw function name into something nicely readable. This
---- includes removing "noisy" characters from the Treesitter parsing as well as
---- converting camel case naming and similar.
+--- Remove "noisy" characters from the Treesitter parsing
 ---
 --- @param name string - name of the test function
 --- @return string
 local function beautify_name(name)
   local clean_name = (name:gsub('`', ''):gsub('"', ''))
-  local has_whitespaces = clean_name:match(' ') and true or false
-  local descriptive_name = has_whitespaces and clean_name
-    or camel_case_to_lower_case_with_whitespaces(clean_name)
-  return (descriptive_name:gsub('^ ', ''))
+  return (clean_name:gsub('^ ', ''))
 end
 
 --- See neotest.lib.treesitter.ParseOptions.build_position

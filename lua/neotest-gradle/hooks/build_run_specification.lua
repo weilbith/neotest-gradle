@@ -1,4 +1,5 @@
 local lib = require('neotest.lib')
+local logger = require('neotest.logging')
 local find_project_directory = require('neotest-gradle.hooks.find_project_directory')
 
 --- Fiends either an executable file named `gradlew` in any parent directory of
@@ -92,6 +93,8 @@ local function get_test_filter_arguments(tree, position)
       vim.list_extend(arguments, { '--tests', "'" .. namespace.id .. "'" })
     end
   end
+
+  logger.debug("test filter args: " .. vim.inspect(arguments))
 
   return arguments
 end
