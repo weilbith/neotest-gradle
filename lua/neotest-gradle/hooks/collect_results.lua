@@ -42,14 +42,25 @@ end
 --- @param test_case_node table - XML node of test case result
 --- @return table | nil - see neotest.Position
 local function find_position_for_test_case(tree, test_case_node)
-  local function_name = test_case_node._attr.name:gsub('%(%)', '')
-  local package_and_class = (test_case_node._attr.classname:gsub('%$', '%.'))
+  local test_name = test_case_node._attr.name:gsub('%(.*%)$', '') -- Strip parameters
+  local class_name = test_case_node._attr.classname
 
+  local candidate_ids = {
+    class_name .. '.' .. test_name,                    -- JUnit4: com.example.Test.method
+    class_name:gsub('%$', '.') .. '.' .. test_name     -- Jupiter: com.example.Test$Inner -> com.example.Test.Inner.method (nested classes)
+  }
+  
   for _, position in tree:iter() do
-    if position.name == function_name and vim.startswith(position.id, package_and_class) then
-      return position
+    if position then
+      for _, candidate_id in ipairs(candidate_ids) do
+        if position.id == candidate_id then
+          return position
+        end
+      end
     end
   end
+
+  return nil
 end
 
 --- Convert a JUnit failure report into a Neotest error. It parses the failure
@@ -101,17 +112,14 @@ return function(build_specfication, _, tree)
     for _, test_suite_node in pairs(asList(juris_report.testsuite)) do
       for _, test_case_node in pairs(asList(test_suite_node.testcase)) do
         local matched_position = find_position_for_test_case(tree, test_case_node)
-
         if matched_position ~= nil then
           local failure_node = test_case_node.failure
           local status = failure_node == nil and STATUS_PASSED or STATUS_FAILED
           local short_message = (failure_node or {}).message
-          local error = failure_node and parse_error_from_failure_xml(failure_node, position)
+          local error = failure_node and parse_error_from_failure_xml(failure_node, matched_position)
           local result = { status = status, short = short_message, errors = { error } }
           results[matched_position.id] = result
         end
-
-        -- TODO: What to do here?
       end
     end
   end

@@ -1,10 +1,19 @@
 local lib = require('neotest.lib')
 
--- TODO: How to improve using Treesitter or similar?
---- @param file_path string
+--- @param file_path string The path of the file to parse.
+--- @return string The package name or an empty string if not found.
 local function get_package_name(file_path)
-  local first_line = lib.files.read_lines(file_path)[1]
-  return (first_line:gsub('^package ', ''):gsub(';', ''))
+  local lines = lib.files.read_lines(file_path)
+
+  for _, line in ipairs(lines) do
+    -- Match package declaration (works for both Java and Kotlin)
+    local package_match = line:match('^%s*package%s+([%w%.]+)')
+    if package_match then
+      return package_match
+    end
+  end
+
+  return ''
 end
 
 return {

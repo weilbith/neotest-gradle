@@ -1,5 +1,7 @@
 # Neotest Gradle
 
+![Tests](https://github.com/kobbikobb/neotest-gradle/workflows/Tests/badge.svg)
+
 [Neotest](https://github.com/nvim-neotest/neotest) adapter for _Kotlin_ and
 _Java_ projects using [Gradle](https://gradle.org/) test with reports in JUnit
 XML format.
